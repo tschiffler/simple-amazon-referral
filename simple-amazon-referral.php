@@ -2,7 +2,7 @@
 /*
 Plugin Name: Simple Amazon Referral
 Description: Ein einfaches WordPress-Plugin zur Verwaltung und Anzeige von Amazon-Produktdaten. Sämtliche Daten werden über eine lokale Tabelle gehalten ohne Abhängigkeiten zu irgend einer API.
-Version: 1.0
+Version: 1.1
 Author: Thomas Schiffler
 Author URI: https://www.schiffler.eu
 */
@@ -25,6 +25,9 @@ class SimpleAmazonReferral {
         add_action('admin_menu', [$this, 'create_admin_menu']);
         add_shortcode('AMAZON_REF', [$this, 'render_shortcode']);
 		add_shortcode('AMAZON_TXT', [$this, 'render_text_shortcode']);
+
+		// Datenbankupdate prüfen
+        add_action('plugins_loaded', [$this, 'check_for_update']);
     }
 
     // Tabelle erstellen
@@ -38,11 +41,24 @@ class SimpleAmazonReferral {
             image_url TEXT NOT NULL,
             title VARCHAR(255) NOT NULL,
             description TEXT,
-            product_url TEXT NOT NULL
+            product_url TEXT NOT NULL,
+            default_text VARCHAR(255) DEFAULT 'Textlink'
         ) $charset_collate;";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
+
+        // Datenbankversion speichern
+        update_option('simple_amazon_referral_db_version', '1.1');
+    }
+
+    public function check_for_update() {
+        $installed_version = get_option('simple_amazon_referral_db_version');
+        $current_version = '1.1';
+
+        if ($installed_version !== $current_version) {
+            $this->install_table();
+        }
     }
 
     // Tabelle löschen
@@ -75,6 +91,7 @@ class SimpleAmazonReferral {
             $title = sanitize_text_field($_POST['title']);
             $description = sanitize_textarea_field($_POST['description']);
             $product_url = esc_url_raw($_POST['product_url']);
+            $default_text = sanitize_text_field($_POST['default_text']);
 
             if ($_POST['action'] === 'add') {
                 $wpdb->insert($this->table_name, [
@@ -82,7 +99,8 @@ class SimpleAmazonReferral {
                     'image_url' => $image_url,
                     'title' => $title,
                     'description' => $description,
-                    'product_url' => $product_url
+                    'product_url' => $product_url,
+                    'default_text' => $default_text
                 ]);
             } elseif ($_POST['action'] === 'edit' && isset($_POST['id'])) {
                 $id = (int) $_POST['id'];
@@ -91,7 +109,8 @@ class SimpleAmazonReferral {
                     'image_url' => $image_url,
                     'title' => $title,
                     'description' => $description,
-                    'product_url' => $product_url
+                    'product_url' => $product_url,
+                    'default_text' => $default_text
                 ], ['id' => $id]);
             }
         }
@@ -159,7 +178,7 @@ class SimpleAmazonReferral {
         global $wpdb;
 
         $atts = shortcode_atts([
-            'title' => 'Produkt ansehen',
+            'title' => null,
         ], $atts);
 
         $identifier = sanitize_text_field($content);
@@ -174,12 +193,15 @@ class SimpleAmazonReferral {
             return '<p>Produkt nicht gefunden.</p>';
         }
 
+        // Verwende den Default-Text aus der Datenbank, falls kein Titel angegeben wurde
+        $link_text = $atts['title'] ? $atts['title'] : $product->default_text;
+
         return sprintf(
             '<a href="%s" target="_blank" title="%s" alt="%s">%s*</a>',
             esc_url($product->product_url),
             esc_attr($product->title),
             esc_attr($product->title),
-            esc_html($atts['title'])
+            esc_html($link_text)
         );
     }
 }

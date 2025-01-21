@@ -33,6 +33,10 @@
                 <td><input type="text" name="title" id="title" required value="<?php echo $edit_product ? esc_attr($edit_product->title) : ''; ?>"></td>
             </tr>
             <tr>
+                <th><label for="default_text">Textlink Titel</label></th>
+                <td><input type="text" name="default_text" id="default_text" value="<?php echo $edit_product ? esc_attr($edit_product->default_text) : 'Produkt ansehen'; ?>"></td>
+            </tr>
+            <tr>
                 <th><label for="description">Beschreibung</label></th>
                 <td><textarea name="description" id="description" rows="4"><?php echo $edit_product ? esc_textarea($edit_product->description) : ''; ?></textarea></td>
             </tr>
@@ -57,6 +61,7 @@
                 <th>Produkt-ID</th>
                 <th>Bild-URL</th>
                 <th>Titel</th>
+                <th>Textlink Titel</th>
                 <th>Beschreibung</th>
                 <th>Produkt-URL</th>
                 <th>Aktionen</th>
@@ -65,7 +70,7 @@
         <tbody>
             <?php if (empty($products)) : ?>
                 <tr>
-                    <td colspan="7">Keine Produkte vorhanden.</td>
+                    <td colspan="8">Keine Produkte vorhanden.</td>
                 </tr>
             <?php else : ?>
                 <?php foreach ($products as $product) : ?>
@@ -74,6 +79,7 @@
                         <td><?php echo esc_html($product->product_id); ?></td>
                         <td><a href="<?php echo esc_url($product->image_url); ?>" target="_blank">Bild anzeigen</a></td>
                         <td><?php echo esc_html($product->title); ?></td>
+                        <td><?php echo esc_html($product->default_text); ?></td>
                         <td><?php echo esc_html($product->description); ?></td>
                         <td><a href="<?php echo esc_url($product->product_url); ?>" target="_blank">Produkt-Link</a></td>
                         <td>
